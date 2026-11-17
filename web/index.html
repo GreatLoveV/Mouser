@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mouser</title>
+<link rel="icon" href="/icon.svg">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<a class="skip" href="#settings">Skip to settings</a>
+<header class="bar">
+  <div class="brand">
+    <img src="/icon.svg" alt="" width="22" height="22">
+    <span>Mouser</span>
+  </div>
+  <p class="device" id="device" role="status">Looking for your Basilisk V3…</p>
+  <div class="bar-actions">
+    <label class="switch" title="Stops Mouser from changing what your buttons do, until you turn it back on">
+      <input type="checkbox" id="pause"><span>Pause remapping</span>
+    </label>
+    <button class="ghost" id="quit" type="button">Quit Mouser</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="stage" aria-label="Your mouse">
+    <svg id="mouse" viewBox="0 0 260 430" role="group" aria-labelledby="mouse-title">
+      <title id="mouse-title">Your Basilisk V3, seen from above. Select any part to see or change what it does.</title>
+      <defs>
+        <filter id="bloom" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="7"/>
+        </filter>
+        <clipPath id="wheel-clip"><rect x="121" y="58" width="22" height="50" rx="10"/></clipPath>
+      </defs>
+      <!-- underglow: the light that spills onto the desk -->
+      <g class="zone" data-zone="underglow">
+        <path class="glow" filter="url(#bloom)" d="M44 300 C48 360 80 402 133 404 C190 402 210 350 214 270"/>
+        <path class="led" d="M44 300 C48 360 80 402 133 404 C190 402 210 350 214 270"/>
+      </g>
+      <path class="shell" d="M74 58 C86 22 178 22 190 58 C204 108 214 188 210 262 C206 334 190 390 134 396 C84 398 56 372 52 322 C49 286 41 256 30 236 C21 216 33 190 47 174 C58 144 62 98 74 58 Z"/>
+      <path class="seam" d="M132 30 L132 56 M60 150 Q96 164 132 164 Q168 164 206 150"/>
+      <!-- Every physical control is a hit area. data-btn names match the events the app receives. -->
+      <path class="hot key" data-btn="left" d="M130 31 C104 29 82 38 74 58 C66 88 62 118 60 148 Q94 163 130 164 Z"/>
+      <path class="hot key" data-btn="right" d="M134 31 C160 29 182 38 190 58 C198 88 203 118 206 148 Q170 163 134 164 Z"/>
+      <rect class="hot side" data-btn="clutch" x="33" y="142" width="17" height="32" rx="7" transform="rotate(-6 41 158)"/>
+      <rect class="hot side" data-btn="forward" x="29" y="180" width="21" height="28" rx="8" transform="rotate(-8 39 194)"/>
+      <rect class="hot side" data-btn="back" x="33" y="213" width="21" height="28" rx="8" transform="rotate(-14 43 227)"/>
+      <path class="hot tilt" data-btn="tilt_left" d="M118 60 l-19 24 l19 24 Z"/>
+      <path class="hot tilt" data-btn="tilt_right" d="M146 60 l19 24 l-19 24 Z"/>
+      <g class="zone" data-zone="scroll">
+        <rect class="glow" filter="url(#bloom)" x="121" y="58" width="22" height="50" rx="10"/>
+        <rect class="led wheel" x="121" y="58" width="22" height="50" rx="10"/>
+      </g>
+      <g class="ridges" clip-path="url(#wheel-clip)" aria-hidden="true">
+        <g id="ridges"><path d="M123 50h18M123 58h18M123 66h18M123 74h18M123 82h18M123 90h18M123 98h18M123 106h18M123 114h18"/></g>
+      </g>
+      <rect class="hot" data-btn="middle" x="121" y="58" width="22" height="50" rx="10"/>
+      <rect class="hot small" data-btn="scroll_mode" x="124" y="114" width="16" height="11" rx="4"/>
+      <rect class="hot small" data-btn="dpi" x="123" y="131" width="18" height="15" rx="5"/>
+      <g class="zone" data-zone="logo">
+        <circle class="glow" filter="url(#bloom)" cx="132" cy="300" r="20"/>
+        <path class="led" d="M132 284 L148 312 L116 312 Z"/>
+      </g>
+    </svg>
+
+    <dl class="readout">
+      <div class="dpi">
+        <dt>Current DPI</dt>
+        <dd class="big"><output id="dpi-now">–</output></dd>
+        <dd class="stage-pips" id="pips" aria-label="DPI stage"></dd>
+        <dd class="dpi-note" id="dpi-note"></dd>
+      </div>
+      <div>
+        <dt>Profile in use</dt>
+        <dd id="profile-now">–</dd>
+      </div>
+      <div>
+        <dt>Scroll wheel</dt>
+        <dd id="wheel-now">–</dd>
+      </div>
+      <div class="wide">
+        <dt>Last thing you pressed</dt>
+        <dd id="last-btn">Press any button on your mouse</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="panel" id="settings" tabindex="-1" aria-label="Settings">
+    <nav class="tabs" role="tablist" aria-label="Settings">
+      <button role="tab" id="tab-sens" aria-controls="sens" aria-selected="true">Sensitivity</button>
+      <button role="tab" id="tab-light" aria-controls="light" aria-selected="false" tabindex="-1">Lighting</button>
+      <button role="tab" id="tab-buttons" aria-controls="buttons" aria-selected="false" tabindex="-1">Buttons</button>
+      <button role="tab" id="tab-profiles" aria-controls="profiles" aria-selected="false" tabindex="-1">Profiles</button>
+    </nav>
+
+    <!-- Sensitivity -->
+    <div class="pane" id="sens" role="tabpanel" aria-labelledby="tab-sens">
+      <h2>DPI stages</h2>
+      <p class="hint">The DPI button behind the scroll wheel steps through these, then starts over. Pick a stage to switch to it. Every change saves to the mouse right away, so it works on any PC.</p>
+      <div class="stages" id="stages"></div>
+      <div class="row gap">
+        <label class="check"><input type="checkbox" id="split-xy"> Separate X and Y</label>
+        <button type="button" class="ghost" id="add-stage">Add stage</button>
+      </div>
+
+      <h2 id="clutch-h">Sensitivity clutch</h2>
+      <p class="hint" id="clutch-hint">The thick side button in front of Back and Forward. Hold it and your DPI drops until you let go.</p>
+      <div class="clutch-row">
+        <label class="switch"><input type="checkbox" id="clutch-own"><span>Use my own clutch DPI</span></label>
+        <div class="clutch-value" id="clutch-value">
+          <input type="range" id="clutch-range" min="0" max="1000" step="1" aria-label="Clutch DPI">
+          <input type="number" id="clutch-dpi" min="100" max="26000" step="50" aria-label="Clutch DPI value">
+        </div>
+      </div>
+      <p class="hint" id="clutch-note"></p>
+
+      <h2>Polling rate</h2>
+      <p class="hint">How often the mouse reports to your PC. 1000 Hz is smoothest.</p>
+      <div class="seg" id="polling" role="radiogroup" aria-label="Polling rate"></div>
+
+      <h2>Scroll wheel</h2>
+      <div class="toggles">
+        <label class="switch"><input type="checkbox" data-scroll="smart_reel"><span>Smart-reel <small>switches to free-spin automatically when you flick the wheel</small></span></label>
+        <label class="switch"><input type="checkbox" data-scroll="acceleration"><span>Scroll acceleration <small>faster spins scroll further</small></span></label>
+        <label class="switch"><input type="checkbox" data-scroll="free_spin"><span>Free-spin <small>wheel spins without notches</small></span></label>
+      </div>
+    </div>
+
+    <!-- Lighting -->
+    <div class="pane" id="light" role="tabpanel" aria-labelledby="tab-light" hidden>
+      <h2>Which lights</h2>
+      <div class="seg" id="zone" role="radiogroup" aria-label="Light zone"></div>
+      <h2>Effect</h2>
+      <div class="seg wrap" id="effect" role="radiogroup" aria-label="Effect"></div>
+      <div class="field-grid">
+        <label class="field" id="c1-wrap">Color <input type="color" id="c1" value="#00b4ff"></label>
+        <label class="field" id="speed-wrap">Speed <input type="range" id="speed" min="1" max="4" step="1"></label>
+        <label class="field" id="bright-wrap">Brightness <span class="range-out"><input type="range" id="bright" min="0" max="100" step="5"><output id="bright-out"></output></span></label>
+      </div>
+      <p class="hint" id="light-note">Changes go to the mouse as you make them and stay on it. The drawing shows what the mouse is showing.</p>
+    </div>
+
+    <!-- Buttons -->
+    <div class="pane" id="buttons" role="tabpanel" aria-labelledby="tab-buttons" hidden>
+      <div class="row between">
+        <h2>Buttons in <select id="edit-profile" aria-label="Profile to edit"></select></h2>
+      </div>
+      <p class="hint">Remapping works while Mouser is running (it sits in the tray). Select a button here or on the drawing.</p>
+      <ul class="binds" id="binds"></ul>
+      <div class="editor info" id="fixed-info" hidden>
+        <h3 id="fixed-title"></h3>
+        <p id="fixed-text"></p>
+        <div class="row gap">
+          <button type="button" class="ghost" id="fixed-close">Close</button>
+          <button type="button" class="primary" id="fixed-go" hidden></button>
+        </div>
+      </div>
+      <div class="editor" id="editor" hidden>
+        <h3 id="editor-title"></h3>
+        <label class="field">Does this
+          <select id="act-type">
+            <option value="default">Its normal job</option>
+            <option value="disabled">Nothing (turned off)</option>
+            <option value="mouse">Acts as another mouse button</option>
+            <option value="keys">Presses a keyboard shortcut</option>
+            <option value="media">Media control</option>
+            <option value="dpi">Changes DPI stage</option>
+            <option value="clutch">Sensitivity clutch (lower DPI while held)</option>
+          </select>
+        </label>
+        <label class="field" data-for="mouse">Mouse button
+          <select id="act-mouse">
+            <option value="left">Left click</option><option value="right">Right click</option>
+            <option value="middle">Middle click</option><option value="back">Back</option><option value="forward">Forward</option>
+          </select>
+        </label>
+        <div class="field" data-for="keys">Shortcut
+          <button type="button" class="capture" id="act-keys" aria-describedby="keys-hint">Click, then press the keys</button>
+          <small id="keys-hint">Up to 4 keys, like Ctrl + Shift + M.</small>
+        </div>
+        <label class="field" data-for="media">Media key
+          <select id="act-media">
+            <option value="play_pause">Play / pause</option><option value="next">Next track</option>
+            <option value="prev">Previous track</option><option value="vol_up">Volume up</option>
+            <option value="vol_down">Volume down</option><option value="mute">Mute</option>
+          </select>
+        </label>
+        <label class="field" data-for="dpi">Direction
+          <select id="act-dpi">
+            <option value="up">Next stage up</option><option value="down">Next stage down</option><option value="cycle">Cycle through stages</option>
+          </select>
+        </label>
+        <label class="field" data-for="clutch">DPI while held
+          <input type="number" id="act-clutch" min="100" max="26000" step="50" value="400">
+        </label>
+        <div class="row gap">
+          <button type="button" class="ghost" id="act-cancel">Cancel</button>
+          <button type="button" class="primary" id="act-save">Save button</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profiles -->
+    <div class="pane" id="profiles" role="tabpanel" aria-labelledby="tab-profiles" hidden>
+      <h2>Profiles</h2>
+      <p class="hint">Mouser switches profile when one of its programs is in front. Everywhere else, the first profile applies.</p>
+      <ul class="profiles" id="profile-list"></ul>
+      <form class="new-profile" id="new-profile">
+        <h3>New profile</h3>
+        <label class="field">Name <input id="np-name" maxlength="40" required placeholder="Valorant"></label>
+        <label class="field">Programs <input id="np-apps" placeholder="VALORANT-Win64-Shipping.exe" aria-describedby="np-apps-hint"></label>
+        <small id="np-apps-hint">The .exe names, comma separated. The program in front right now is shown in the top bar.</small>
+        <label class="field">Set DPI when it starts <input id="np-dpi" type="number" min="100" max="26000" step="50" placeholder="Leave empty to keep"></label>
+        <button class="primary" type="submit">Add profile</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="alert" hidden></div>
+<script src="/app.js"></script>
+</body>
+</html>
